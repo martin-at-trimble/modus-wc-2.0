@@ -8,14 +8,10 @@ import {
   Listen,
   Prop,
 } from '@stencil/core';
+import { protectLightDomSlotContent } from '../../utils';
 import { handleShadowDOMStyles } from '../base-component';
 import { DaisySize } from '../types';
-import {
-  Attributes,
-  inheritAriaAttributes,
-  KEY
-} from '../utils';
-import { protectLightDomSlotContent } from '../../utils';
+import { Attributes, inheritAriaAttributes, KEY } from '../utils';
 import { convertPropsToClasses } from './modus-wc-button.tailwind';
 
 /**
