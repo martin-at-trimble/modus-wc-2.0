@@ -7,6 +7,14 @@ import { ModusWcInputLabel } from '../modus-wc-input-label/modus-wc-input-label'
 import { IInputFeedbackProp } from '../types';
 import { expectLabelLinkedToControl } from '../utils';
 
+const CLEAR_BUTTON_SELECTOR = '.modus-wc-clear-icon-container button';
+
+const textInputClearAdornmentComponents = [
+  ModusWcTextInput,
+  ModusWcButton,
+  ModusWcIcon,
+];
+
 describe('modus-wc-text-input', () => {
   it('should render with default props', async () => {
     const page = await newSpecPage({
@@ -18,7 +26,12 @@ describe('modus-wc-text-input', () => {
 
   it('should render with custom props', async () => {
     const page = await newSpecPage({
-      components: [ModusWcTextInput],
+      components: [
+        ModusWcTextInput,
+        ModusWcInputLabel,
+        ModusWcButton,
+        ModusWcIcon,
+      ],
       html: `<modus-wc-text-input
         aria-describedby="description"
         aria-label="Test text input"
@@ -194,9 +207,44 @@ describe('modus-wc-text-input', () => {
     expect(focusSpy).not.toHaveBeenCalled();
   });
 
-  it('should clear text when clear button is clicked', async () => {
+  it('should preventDefault on decorative icon mousedown when input is focused', async () => {
     const page = await newSpecPage({
       components: [ModusWcTextInput],
+      html: '<modus-wc-text-input include-search="true" aria-label="Search mousedown"></modus-wc-text-input>',
+    });
+
+    const input = page.root!.querySelector('input') as HTMLInputElement;
+    const searchIcon = page.root!.querySelector(
+      '.modus-wc-text-input-icon-search'
+    )!;
+
+    const originalActiveElement = Object.getOwnPropertyDescriptor(
+      document,
+      'activeElement'
+    );
+    Object.defineProperty(document, 'activeElement', {
+      configurable: true,
+      get: () => input,
+    });
+
+    const event = new MouseEvent('mousedown', {
+      bubbles: true,
+      cancelable: true,
+    });
+    const preventDefaultSpy = jest.spyOn(event, 'preventDefault');
+
+    searchIcon.dispatchEvent(event);
+
+    expect(preventDefaultSpy).toHaveBeenCalled();
+
+    if (originalActiveElement) {
+      Object.defineProperty(document, 'activeElement', originalActiveElement);
+    }
+  });
+
+  it('should clear text when clear button is clicked', async () => {
+    const page = await newSpecPage({
+      components: textInputClearAdornmentComponents,
       html: '<modus-wc-text-input include-clear="true" value="Test Value" aria-label="Clear test"></modus-wc-text-input>',
     });
 
@@ -206,12 +254,9 @@ describe('modus-wc-text-input', () => {
 
     expect(component.value).toBe('Test Value');
 
-    // Find and click the clear button
-    const clearButton = page.root!.querySelector(
-      '.modus-wc-text-input-icon-clear'
-    );
+    const clearButton = page.root!.querySelector(CLEAR_BUTTON_SELECTOR);
     expect(clearButton).not.toBeNull();
-    clearButton!.dispatchEvent(new MouseEvent('click'));
+    (clearButton as HTMLButtonElement).click();
 
     await page.waitForChanges();
 
@@ -219,9 +264,48 @@ describe('modus-wc-text-input', () => {
     expect(changeSpy).toHaveBeenCalled();
   });
 
+  it('should refocus input after clear button click', async () => {
+    const page = await newSpecPage({
+      components: textInputClearAdornmentComponents,
+      html: '<modus-wc-text-input include-clear="true" value="Test Value" aria-label="Clear refocus test"></modus-wc-text-input>',
+    });
+
+    const input = page.root!.querySelector('input') as HTMLInputElement;
+    const clearButton = page.root!.querySelector(
+      CLEAR_BUTTON_SELECTOR
+    ) as HTMLButtonElement;
+    const focusSpy = jest.spyOn(input, 'focus');
+
+    clearButton.click();
+    await page.waitForChanges();
+
+    expect(focusSpy).toHaveBeenCalled();
+    focusSpy.mockRestore();
+  });
+
+  it('should clear without error when input is not in the DOM', async () => {
+    const page = await newSpecPage({
+      components: textInputClearAdornmentComponents,
+      html: '<modus-wc-text-input include-clear="true" value="Test Value" aria-label="Clear missing input test"></modus-wc-text-input>',
+    });
+
+    const component = page.rootInstance as ModusWcTextInput;
+    page.root!.querySelector('input')?.remove();
+    await page.waitForChanges();
+
+    const clearButton = page.root!.querySelector(
+      CLEAR_BUTTON_SELECTOR
+    ) as HTMLButtonElement;
+
+    clearButton.click();
+    await page.waitForChanges();
+
+    expect(component.value).toBe('');
+  });
+
   it('should clear text when Enter key is pressed on clear button', async () => {
     const page = await newSpecPage({
-      components: [ModusWcTextInput],
+      components: textInputClearAdornmentComponents,
       html: '<modus-wc-text-input include-clear="true" value="Test Value" aria-label="Clear test"></modus-wc-text-input>',
     });
 
@@ -229,10 +313,7 @@ describe('modus-wc-text-input', () => {
     const changeSpy = jest.fn();
     page.root!.addEventListener('inputChange', changeSpy);
 
-    // Find and dispatch keydown event with Enter key
-    const clearButton = page.root!.querySelector(
-      '.modus-wc-text-input-icon-clear'
-    );
+    const clearButton = page.root!.querySelector(CLEAR_BUTTON_SELECTOR);
     expect(clearButton).not.toBeNull();
 
     const keyEvent = new KeyboardEvent('keydown', { key: 'Enter' });
@@ -248,14 +329,14 @@ describe('modus-wc-text-input', () => {
 
   it('should keep focus on input when Enter key is pressed on clear button', async () => {
     const page = await newSpecPage({
-      components: [ModusWcTextInput],
+      components: textInputClearAdornmentComponents,
       html: '<modus-wc-text-input include-clear="true" value="Test Value" aria-label="Clear test"></modus-wc-text-input>',
     });
 
     const component = page.rootInstance as ModusWcTextInput;
     const input = page.root!.querySelector('input') as HTMLInputElement;
     const clearButton = page.root!.querySelector(
-      '.modus-wc-text-input-icon-clear'
+      CLEAR_BUTTON_SELECTOR
     ) as HTMLElement;
 
     expect(input).not.toBeNull();
@@ -280,7 +361,7 @@ describe('modus-wc-text-input', () => {
 
   it('should clear text when Space key is pressed on clear button', async () => {
     const page = await newSpecPage({
-      components: [ModusWcTextInput],
+      components: textInputClearAdornmentComponents,
       html: '<modus-wc-text-input include-clear="true" value="Test Value" aria-label="Clear test"></modus-wc-text-input>',
     });
 
@@ -288,10 +369,7 @@ describe('modus-wc-text-input', () => {
     const changeSpy = jest.fn();
     page.root!.addEventListener('inputChange', changeSpy);
 
-    // Find and dispatch keydown event with Space key
-    const clearButton = page.root!.querySelector(
-      '.modus-wc-text-input-icon-clear'
-    );
+    const clearButton = page.root!.querySelector(CLEAR_BUTTON_SELECTOR);
     expect(clearButton).not.toBeNull();
 
     const keyEvent = new KeyboardEvent('keydown', { key: ' ' });
@@ -307,7 +385,7 @@ describe('modus-wc-text-input', () => {
 
   it('should not trigger clear action on other key presses', async () => {
     const page = await newSpecPage({
-      components: [ModusWcTextInput],
+      components: textInputClearAdornmentComponents,
       html: '<modus-wc-text-input include-clear="true" value="Test Value" aria-label="Clear test"></modus-wc-text-input>',
     });
 
@@ -315,10 +393,7 @@ describe('modus-wc-text-input', () => {
     const changeSpy = jest.fn();
     page.root!.addEventListener('inputChange', changeSpy);
 
-    // Find and dispatch keydown event with another key
-    const clearButton = page.root!.querySelector(
-      '.modus-wc-text-input-icon-clear'
-    );
+    const clearButton = page.root!.querySelector(CLEAR_BUTTON_SELECTOR);
     expect(clearButton).not.toBeNull();
 
     const keyEvent = new KeyboardEvent('keydown', { key: 'Tab' });
@@ -334,7 +409,7 @@ describe('modus-wc-text-input', () => {
 
   it('should show clear button only when value exists and not disabled/readonly', async () => {
     const page = await newSpecPage({
-      components: [ModusWcTextInput],
+      components: textInputClearAdornmentComponents,
       html: '<modus-wc-text-input include-clear="true" value="Test Value" aria-label="Clear visibility test"></modus-wc-text-input>',
     });
 
@@ -436,7 +511,7 @@ describe('modus-wc-text-input', () => {
 
   it('should work with custom icon and clear button together', async () => {
     const page = await newSpecPage({
-      components: [ModusWcTextInput],
+      components: textInputClearAdornmentComponents,
       html: `<modus-wc-text-input include-clear="true" value="Test Value" aria-label="Custom icon with clear test">
         <modus-wc-icon slot="custom-icon" name="heart" size="16px"></modus-wc-icon>
       </modus-wc-text-input>`,
@@ -459,11 +534,9 @@ describe('modus-wc-text-input', () => {
     const changeSpy = jest.fn();
     page.root!.addEventListener('inputChange', changeSpy);
 
-    const clearButton = page.root!.querySelector(
-      '.modus-wc-text-input-icon-clear'
-    );
+    const clearButton = page.root!.querySelector(CLEAR_BUTTON_SELECTOR);
     expect(clearButton).not.toBeNull();
-    clearButton!.dispatchEvent(new MouseEvent('click'));
+    (clearButton as HTMLButtonElement).click();
 
     await page.waitForChanges();
 
@@ -508,9 +581,7 @@ describe('modus-wc-text-input', () => {
     expect(
       page.root!.querySelector('.modus-wc-clear-icon-container')
     ).toBeNull();
-    expect(
-      page.root!.querySelector('.modus-wc-text-input-icon-clear')
-    ).toBeNull();
+    expect(page.root!.querySelector(CLEAR_BUTTON_SELECTOR)).toBeNull();
   });
 
   it('should apply disabled class so password key icon can dim', async () => {

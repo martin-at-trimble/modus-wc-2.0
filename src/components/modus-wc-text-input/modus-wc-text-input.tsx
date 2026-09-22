@@ -296,7 +296,7 @@ export class ModusWcTextInput {
   private getLeftCustomIcon(): HTMLElement | undefined {
     const hasCustomIcon = !!this.el.querySelector('[slot="custom-icon"]');
 
-    if(hasCustomIcon) {
+    if (hasCustomIcon) {
       return (
         <div class="modus-wc-text-input-icon modus-wc-text-input-icon-custom">
           <slot name="custom-icon" />
@@ -304,7 +304,7 @@ export class ModusWcTextInput {
       );
     }
 
-    if(this.type === 'password') {
+    if (this.type === 'password') {
       return (
         <modus-wc-icon
           class="modus-wc-text-input-icon modus-wc-text-input-icon-password"
@@ -317,7 +317,7 @@ export class ModusWcTextInput {
       );
     }
 
-    if(this.includeSearch) {
+    if (this.includeSearch) {
       return (
         <SearchSolidIcon
           className="modus-wc-text-input-icon modus-wc-text-input-icon-search"
@@ -332,7 +332,7 @@ export class ModusWcTextInput {
   private getRightCustomIcon(): HTMLElement | undefined {
     const showPasswordToggle = this.shouldShowPasswordToggle();
 
-    if(showPasswordToggle) {
+    if (showPasswordToggle) {
       return (
         <div class="modus-wc-password-toggle-container">
           <modus-wc-button
@@ -347,24 +347,23 @@ export class ModusWcTextInput {
           >
             <modus-wc-icon
               decorative
-              name={
-                this.passwordVisible ? 'visibility_off' : 'visibility_on'
-              }
+              name={this.passwordVisible ? 'visibility_off' : 'visibility_on'}
               size={this.getAdornmentSize()}
             />
           </modus-wc-button>
         </div>
-      )
+      );
     }
 
-    if(this.shouldRenderClear()) {
+    if (this.shouldRenderClear()) {
       const showClear = this.shouldIncludeClear();
 
       return (
-        <div class="modus-wc-password-toggle-container">
+        <div
+          class={`modus-wc-clear-icon-container ${showClear ? 'modus-wc-clear-icon-visible' : 'modus-wc-clear-icon-hidden'}`}
+        >
           <modus-wc-button
             aria-label={this.clearAriaLabel}
-            class={`modus-wc-text-input-password-toggle ${showClear ? 'modus-wc-clear-icon-visible' : 'modus-wc-clear-icon-hidden'}`}
             color="tertiary"
             pressed={showClear}
             shape="square"
@@ -380,7 +379,7 @@ export class ModusWcTextInput {
             />
           </modus-wc-button>
         </div>
-      )
+      );
     }
 
     return undefined;
