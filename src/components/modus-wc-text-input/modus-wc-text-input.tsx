@@ -10,7 +10,6 @@ import {
   Watch,
 } from '@stencil/core';
 import { convertPropsToClasses } from './modus-wc-text-input.tailwind';
-import { CloseSolidIcon } from '../../icons/close-solid.icon';
 import { SearchSolidIcon } from '../../icons/search-solid.icon';
 import { handleShadowDOMStyles } from '../base-component';
 import { INPUT_SIZE_TO_LABEL_SIZE } from '../constants';
@@ -239,8 +238,8 @@ export class ModusWcTextInput {
     return this.passwordVisible ? 'Hide password' : 'Show password';
   }
 
-  /** Maps input `size` to atom scale for the password-toggle button and its icon. */
-  private getPasswordToggleSize(): DaisySize {
+  /** Maps input `size` to button/icon scale for trailing adornments (toggle, clear, icons). */
+  private getAdornmentSize(): DaisySize {
     switch (this.size) {
       case 'xs':
         return 'xs';
@@ -313,7 +312,7 @@ export class ModusWcTextInput {
           name="key"
           onMouseDown={this.handleDecorativeIconMouseDown}
           variant="solid"
-          size={this.getPasswordToggleSize()}
+          size={this.getAdornmentSize()}
         />
       );
     }
@@ -342,7 +341,7 @@ export class ModusWcTextInput {
             color="tertiary"
             pressed={this.passwordVisible}
             shape="square"
-            size={this.getPasswordToggleSize()}
+            size={this.getAdornmentSize()}
             variant="borderless"
             onButtonClick={this.handlePasswordToggle}
           >
@@ -351,7 +350,7 @@ export class ModusWcTextInput {
               name={
                 this.passwordVisible ? 'visibility_off' : 'visibility_on'
               }
-              size={this.getPasswordToggleSize()}
+              size={this.getAdornmentSize()}
             />
           </modus-wc-button>
         </div>
@@ -362,15 +361,24 @@ export class ModusWcTextInput {
       const showClear = this.shouldIncludeClear();
 
       return (
-        <div
-          class={`modus-wc-clear-icon-container ${showClear ? 'modus-wc-clear-icon-visible' : 'modus-wc-clear-icon-hidden'}`}
-        >
-          <CloseSolidIcon
-            ariaLabel={this.clearAriaLabel}
-            className="modus-wc-text-input-icon modus-wc-text-input-icon-clear"
-            decorative={false}
-            onClear={this.handleClearText}
-          />
+        <div class="modus-wc-password-toggle-container">
+          <modus-wc-button
+            aria-label={this.clearAriaLabel}
+            class={`modus-wc-text-input-password-toggle ${showClear ? 'modus-wc-clear-icon-visible' : 'modus-wc-clear-icon-hidden'}`}
+            color="tertiary"
+            pressed={showClear}
+            shape="square"
+            size={this.getAdornmentSize()}
+            variant="borderless"
+            onButtonClick={(event) => this.handleClearText(event.detail)}
+          >
+            <modus-wc-icon
+              decorative
+              name="close"
+              variant="solid"
+              size={this.getAdornmentSize()}
+            />
+          </modus-wc-button>
         </div>
       )
     }
