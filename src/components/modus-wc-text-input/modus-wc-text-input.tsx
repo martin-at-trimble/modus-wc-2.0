@@ -286,11 +286,22 @@ export class ModusWcTextInput {
     return this.type === 'password' && !this.disabled && !this.readOnly;
   }
 
-  private handleDecorativeIconMouseDown = (event: MouseEvent) => {
+  private handleFieldChromeMouseDown = (event: MouseEvent) => {
     const input = this.el.querySelector('input');
-    if (input && document.activeElement === input) {
-      event.preventDefault();
+    if (!input || document.activeElement !== input) {
+      return;
     }
+
+    const target = event.target as HTMLElement;
+    if (target === input) {
+      return;
+    }
+
+    if (target.closest('button, modus-wc-button')) {
+      return;
+    }
+
+    event.preventDefault();
   };
 
   private getLeftCustomIcon(): HTMLElement | undefined {
@@ -310,7 +321,6 @@ export class ModusWcTextInput {
           class="modus-wc-text-input-icon modus-wc-text-input-icon-password"
           decorative
           name="key"
-          onMouseDown={this.handleDecorativeIconMouseDown}
           variant="solid"
           size={this.getAdornmentSize()}
         />
@@ -321,7 +331,6 @@ export class ModusWcTextInput {
       return (
         <SearchSolidIcon
           className="modus-wc-text-input-icon modus-wc-text-input-icon-search"
-          onMouseDown={this.handleDecorativeIconMouseDown}
         />
       );
     }
@@ -398,7 +407,7 @@ export class ModusWcTextInput {
             size={this.getLabelSize()}
           />
         )}
-        <label class={this.getClasses()}>
+        <label class={this.getClasses()} onMouseDown={this.handleFieldChromeMouseDown}>
           {this.getLeftCustomIcon()}
           <input
             aria-required={this.required}

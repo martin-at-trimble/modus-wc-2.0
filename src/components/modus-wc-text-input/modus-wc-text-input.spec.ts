@@ -178,6 +178,64 @@ describe('modus-wc-text-input', () => {
     expect(focusSpy).not.toHaveBeenCalled();
   });
 
+  it('should not emit blur and focus when clicking field label padding while input is focused', async () => {
+    const page = await newSpecPage({
+      components: [ModusWcTextInput],
+      html: '<modus-wc-text-input include-search="true" aria-label="Field padding focus test"></modus-wc-text-input>',
+    });
+    const input = page.root!.querySelector('input') as HTMLInputElement;
+    const fieldLabel = page.root!.querySelector('label.modus-wc-input');
+    const blurSpy = jest.fn();
+    const focusSpy = jest.fn();
+
+    page.root!.addEventListener('inputBlur', blurSpy);
+    page.root!.addEventListener('inputFocus', focusSpy);
+
+    input.focus();
+    await page.waitForChanges();
+    blurSpy.mockClear();
+    focusSpy.mockClear();
+
+    fieldLabel!.dispatchEvent(
+      new MouseEvent('mousedown', { bubbles: true, cancelable: true })
+    );
+    await page.waitForChanges();
+
+    expect(blurSpy).not.toHaveBeenCalled();
+    expect(focusSpy).not.toHaveBeenCalled();
+  });
+
+  it('should not emit blur and focus when clicking custom icon while input is focused', async () => {
+    const page = await newSpecPage({
+      components: [ModusWcTextInput, ModusWcIcon],
+      html: `<modus-wc-text-input aria-label="Custom icon focus test">
+        <modus-wc-icon slot="custom-icon" name="heart" size="sm"></modus-wc-icon>
+      </modus-wc-text-input>`,
+    });
+    const input = page.root!.querySelector('input') as HTMLInputElement;
+    const customIconWrapper = page.root!.querySelector(
+      '.modus-wc-text-input-icon-custom'
+    );
+    const blurSpy = jest.fn();
+    const focusSpy = jest.fn();
+
+    page.root!.addEventListener('inputBlur', blurSpy);
+    page.root!.addEventListener('inputFocus', focusSpy);
+
+    input.focus();
+    await page.waitForChanges();
+    blurSpy.mockClear();
+    focusSpy.mockClear();
+
+    customIconWrapper!.dispatchEvent(
+      new MouseEvent('mousedown', { bubbles: true, cancelable: true })
+    );
+    await page.waitForChanges();
+
+    expect(blurSpy).not.toHaveBeenCalled();
+    expect(focusSpy).not.toHaveBeenCalled();
+  });
+
   it('should not emit blur and focus when clicking password key icon while input is focused', async () => {
     const page = await newSpecPage({
       components: [ModusWcTextInput, ModusWcIcon],
