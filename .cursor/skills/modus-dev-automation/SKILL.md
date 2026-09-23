@@ -117,6 +117,10 @@ After visual/markup changes, when `reverseImpact` is non-empty:
 
 Hooks may remind you to run storybook-smoke after SCSS/Tailwind/component edits.
 
+### Nested component style overrides
+
+When a parent styles a nested child (inner component, part, or slotted element), set **only** properties that must differ from that child's defaults (background, color, border, spacing, etc.). Do **not** re-declare design tokens or rules the child already applies — duplicates drift with theme updates and fight cascade layers. Repeat a token only when the design explicitly requires a different value in that parent context.
+
 ## Subagents (Composer 2.5 only)
 
 Use custom subagents **`storybook-smoke`** and **`graph-impact`** only. Do **not** spawn built-in `explore` / `generalPurpose` Task subagents (Claude). Do not pass an inline `model` override to Task.
