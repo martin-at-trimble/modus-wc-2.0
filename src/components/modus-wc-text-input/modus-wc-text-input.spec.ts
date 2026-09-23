@@ -332,6 +332,135 @@ describe('modus-wc-text-input', () => {
     expect(focusSpy).not.toHaveBeenCalled();
   });
 
+  it('should skip field label mousedown wiring when label element is not found', async () => {
+    const page = await newSpecPage({
+      components: [ModusWcTextInput],
+      html: '<modus-wc-text-input aria-label="Missing label wiring"></modus-wc-text-input>',
+    });
+
+    const component = page.rootInstance as ModusWcTextInput;
+    const fieldLabel = page.root!.querySelector(
+      'label.modus-wc-input'
+    ) as HTMLLabelElement;
+    const addSpy = jest.spyOn(fieldLabel, 'addEventListener');
+
+    jest.spyOn(component.el, 'querySelector').mockReturnValue(null);
+    component.componentDidLoad();
+
+    expect(addSpy).not.toHaveBeenCalled();
+    addSpy.mockRestore();
+  });
+
+  it('should not throw on disconnectedCallback when field label reference is unset', async () => {
+    const page = await newSpecPage({
+      components: [ModusWcTextInput],
+      html: '<modus-wc-text-input aria-label="Unset label disconnect"></modus-wc-text-input>',
+    });
+
+    const component = page.rootInstance as ModusWcTextInput;
+    (component as unknown as { fieldLabelEl?: HTMLLabelElement }).fieldLabelEl =
+      undefined;
+
+    expect(() => component.disconnectedCallback()).not.toThrow();
+  });
+
+  it('should remove field label mousedown listener on disconnectedCallback', async () => {
+    const page = await newSpecPage({
+      components: [ModusWcTextInput],
+      html: '<modus-wc-text-input aria-label="Disconnect test"></modus-wc-text-input>',
+    });
+
+    const component = page.rootInstance as ModusWcTextInput;
+    const fieldLabel = page.root!.querySelector(
+      'label.modus-wc-input'
+    ) as HTMLLabelElement;
+    const removeSpy = jest.spyOn(fieldLabel, 'removeEventListener');
+
+    component.disconnectedCallback();
+
+    expect(removeSpy).toHaveBeenCalledWith('mousedown', expect.any(Function));
+    removeSpy.mockRestore();
+  });
+
+  it('should not preventDefault on field chrome mousedown when input is not focused', async () => {
+    const page = await newSpecPage({
+      components: [ModusWcTextInput],
+      html: '<modus-wc-text-input include-search="true" aria-label="Unfocused mousedown"></modus-wc-text-input>',
+    });
+
+    const searchIcon = page.root!.querySelector(
+      '.modus-wc-text-input-icon-search'
+    )!;
+    const event = new MouseEvent('mousedown', {
+      bubbles: true,
+      cancelable: true,
+    });
+    const preventDefaultSpy = jest.spyOn(event, 'preventDefault');
+
+    searchIcon.dispatchEvent(event);
+
+    expect(preventDefaultSpy).not.toHaveBeenCalled();
+  });
+
+  it('should not preventDefault on field chrome mousedown when input element is missing', async () => {
+    const page = await newSpecPage({
+      components: [ModusWcTextInput],
+      html: '<modus-wc-text-input include-search="true" aria-label="Missing input mousedown"></modus-wc-text-input>',
+    });
+
+    const component = page.rootInstance as ModusWcTextInput;
+    const searchIcon = page.root!.querySelector(
+      '.modus-wc-text-input-icon-search'
+    )!;
+
+    jest.spyOn(component.el, 'querySelector').mockReturnValue(null);
+
+    const event = new MouseEvent('mousedown', {
+      bubbles: true,
+      cancelable: true,
+    });
+    const preventDefaultSpy = jest.spyOn(event, 'preventDefault');
+
+    searchIcon.dispatchEvent(event);
+
+    expect(preventDefaultSpy).not.toHaveBeenCalled();
+  });
+
+  it('should not preventDefault on password toggle mousedown when input is focused', async () => {
+    const page = await newSpecPage({
+      components: [ModusWcTextInput, ModusWcButton, ModusWcIcon],
+      html: '<modus-wc-text-input type="password" value="secret" aria-label="Password toggle mousedown"></modus-wc-text-input>',
+    });
+
+    const input = page.root!.querySelector('input') as HTMLInputElement;
+    const toggleHost = page.root!.querySelector(
+      '.modus-wc-password-toggle-container modus-wc-button'
+    )!;
+
+    const originalActiveElement = Object.getOwnPropertyDescriptor(
+      document,
+      'activeElement'
+    );
+    Object.defineProperty(document, 'activeElement', {
+      configurable: true,
+      get: () => input,
+    });
+
+    const event = new MouseEvent('mousedown', {
+      bubbles: true,
+      cancelable: true,
+    });
+    const preventDefaultSpy = jest.spyOn(event, 'preventDefault');
+
+    toggleHost.dispatchEvent(event);
+
+    expect(preventDefaultSpy).not.toHaveBeenCalled();
+
+    if (originalActiveElement) {
+      Object.defineProperty(document, 'activeElement', originalActiveElement);
+    }
+  });
+
   it('should preventDefault on decorative icon mousedown when input is focused', async () => {
     const page = await newSpecPage({
       components: [ModusWcTextInput],
@@ -543,6 +672,13 @@ describe('modus-wc-text-input', () => {
       '.modus-wc-clear-icon-container'
     );
     expect(clearContainer).toHaveClass('modus-wc-clear-icon-visible');
+
+    const clearButton = page.root!.querySelector(
+      '.modus-wc-clear-icon-container button'
+    );
+    expect(clearButton).not.toBeNull();
+    expect(clearButton!.getAttribute('aria-pressed')).toBeNull();
+    expect(clearButton!.classList.contains('modus-wc-btn-active')).toBe(false);
 
     // Set value to empty
     const component = page.rootInstance as ModusWcTextInput;

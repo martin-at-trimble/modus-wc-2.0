@@ -40,6 +40,7 @@ import {
 export class ModusWcTextInput {
   private inheritedAttributes: Attributes = {};
   private readonly resolveEffectiveId = createEffectiveIdResolver();
+  private fieldLabelEl?: HTMLLabelElement;
 
   /** Reference to the host element */
   @Element() el!: HTMLElement;
@@ -168,6 +169,22 @@ export class ModusWcTextInput {
     ) {
       this.el.setAttribute('inputmode', 'text');
     }
+  }
+
+  componentDidLoad() {
+    this.fieldLabelEl =
+      this.el.querySelector('label.modus-wc-input') ?? undefined;
+    this.fieldLabelEl?.addEventListener(
+      'mousedown',
+      this.handleFieldChromeMouseDown
+    );
+  }
+
+  disconnectedCallback() {
+    this.fieldLabelEl?.removeEventListener(
+      'mousedown',
+      this.handleFieldChromeMouseDown
+    );
   }
 
   componentDidRender() {
@@ -372,7 +389,6 @@ export class ModusWcTextInput {
           <modus-wc-button
             aria-label={this.clearAriaLabel}
             color="tertiary"
-            pressed={showClear}
             shape="square"
             size={this.getAdornmentSize()}
             variant="borderless"
@@ -405,10 +421,7 @@ export class ModusWcTextInput {
             size={this.getLabelSize()}
           />
         )}
-        <label
-          class={this.getClasses()}
-          onMouseDown={this.handleFieldChromeMouseDown}
-        >
+        <label class={this.getClasses()}>
           {this.getLeftCustomIcon()}
           <input
             aria-required={this.required}
