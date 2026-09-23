@@ -329,9 +329,7 @@ export class ModusWcTextInput {
 
     if (this.includeSearch) {
       return (
-        <SearchSolidIcon
-          className="modus-wc-text-input-icon modus-wc-text-input-icon-search"
-        />
+        <SearchSolidIcon className="modus-wc-text-input-icon modus-wc-text-input-icon-search" />
       );
     }
 
@@ -407,7 +405,10 @@ export class ModusWcTextInput {
             size={this.getLabelSize()}
           />
         )}
-        <label class={this.getClasses()} onMouseDown={this.handleFieldChromeMouseDown}>
+        <label
+          class={this.getClasses()}
+          onMouseDown={this.handleFieldChromeMouseDown}
+        >
           {this.getLeftCustomIcon()}
           <input
             aria-required={this.required}
