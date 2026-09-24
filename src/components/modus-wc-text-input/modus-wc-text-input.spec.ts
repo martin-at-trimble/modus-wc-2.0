@@ -236,7 +236,7 @@ describe('modus-wc-text-input', () => {
     }
   });
 
-  it('should not preventDefault on field chrome mousedown when target is the clear button', async () => {
+  it('should preventDefault on clear button mousedown when input is focused', async () => {
     const page = await newSpecPage({
       components: textInputClearAdornmentComponents,
       html: '<modus-wc-text-input include-clear="true" value="Test Value" aria-label="Clear mousedown target"></modus-wc-text-input>',
@@ -265,7 +265,71 @@ describe('modus-wc-text-input', () => {
 
     clearButton.dispatchEvent(event);
 
+    expect(preventDefaultSpy).toHaveBeenCalled();
+
+    if (originalActiveElement) {
+      Object.defineProperty(document, 'activeElement', originalActiveElement);
+    }
+  });
+
+  it('should not preventDefault on clear button mousedown when input is not focused', async () => {
+    const page = await newSpecPage({
+      components: textInputClearAdornmentComponents,
+      html: '<modus-wc-text-input include-clear="true" value="Test Value" aria-label="Clear mousedown unfocused"></modus-wc-text-input>',
+    });
+
+    const clearButton = page.root!.querySelector(
+      CLEAR_BUTTON_SELECTOR
+    ) as HTMLButtonElement;
+    const event = new MouseEvent('mousedown', {
+      bubbles: true,
+      cancelable: true,
+    });
+    const preventDefaultSpy = jest.spyOn(event, 'preventDefault');
+
+    clearButton.dispatchEvent(event);
+
     expect(preventDefaultSpy).not.toHaveBeenCalled();
+  });
+
+  it('should not emit blur and focus when clicking clear button while input is focused', async () => {
+    const page = await newSpecPage({
+      components: textInputClearAdornmentComponents,
+      html: '<modus-wc-text-input include-clear="true" value="Test Value" aria-label="Clear focus test"></modus-wc-text-input>',
+    });
+
+    const input = page.root!.querySelector('input') as HTMLInputElement;
+    const clearButton = page.root!.querySelector(
+      CLEAR_BUTTON_SELECTOR
+    ) as HTMLButtonElement;
+    const blurSpy = jest.fn();
+    const focusSpy = jest.fn();
+
+    page.root!.addEventListener('inputBlur', blurSpy);
+    page.root!.addEventListener('inputFocus', focusSpy);
+
+    input.focus();
+    await page.waitForChanges();
+    blurSpy.mockClear();
+    focusSpy.mockClear();
+
+    const originalActiveElement = Object.getOwnPropertyDescriptor(
+      document,
+      'activeElement'
+    );
+    Object.defineProperty(document, 'activeElement', {
+      configurable: true,
+      get: () => input,
+    });
+
+    clearButton.dispatchEvent(
+      new MouseEvent('mousedown', { bubbles: true, cancelable: true })
+    );
+    clearButton.click();
+    await page.waitForChanges();
+
+    expect(blurSpy).not.toHaveBeenCalled();
+    expect(focusSpy).not.toHaveBeenCalled();
 
     if (originalActiveElement) {
       Object.defineProperty(document, 'activeElement', originalActiveElement);

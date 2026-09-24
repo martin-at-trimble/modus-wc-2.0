@@ -227,7 +227,9 @@ export class ModusWcTextInput {
     this.inputChange.emit(event as unknown as InputEvent);
     this.clearClick.emit();
     const input = this.el.querySelector('input');
-    input?.focus();
+    if (input && document.activeElement !== input) {
+      input.focus();
+    }
   };
 
   private handleFocus = (event: FocusEvent) => {
@@ -315,6 +317,10 @@ export class ModusWcTextInput {
     }
 
     if (target.closest('button, modus-wc-button')) {
+      if (target.closest('.modus-wc-clear-icon-container')) {
+        // Keep focus in the field on mouse clear so inputBlur/inputFocus do not churn.
+        event.preventDefault();
+      }
       return;
     }
 
