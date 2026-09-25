@@ -1,10 +1,11 @@
 import { Component, Element, h, Host, Prop } from '@stencil/core';
 import { convertPropsToClasses } from './modus-wc-badge.tailwind';
-import { protectLightDomSlotContent } from '../../utils';
+import { protectLightDomSlotContent, queryDirectChild } from '../../utils';
 import { handleShadowDOMStyles } from '../base-component';
 import { ModusSize } from '../types';
 import { Attributes, inheritAriaAttributes } from '../utils';
 
+const INNER_BADGE_SELECTOR = 'span.modus-wc-badge';
 const ALERT_COLORS = ['success', 'warning', 'danger'];
 
 /**
@@ -19,7 +20,8 @@ const ALERT_COLORS = ['success', 'warning', 'danger'];
 })
 export class ModusWcBadge {
   private inheritedAttributes: Attributes = {};
-  private releaseSlotProtection?: () => void;
+  private queuedHostText?: string;
+  private slotProtection?: ReturnType<typeof protectLightDomSlotContent>;
 
   /** Reference to the host element */
   @Element() el!: HTMLElement;
@@ -45,20 +47,53 @@ export class ModusWcBadge {
   @Prop() variant: 'counter' | 'filled' | 'outlined' | 'text' = 'filled';
 
   componentWillLoad() {
+    this.captureEarlyHostText();
     handleShadowDOMStyles(this.el);
     this.inheritedAttributes = inheritAriaAttributes(this.el);
   }
 
-  componentDidLoad() {
-    this.releaseSlotProtection = protectLightDomSlotContent({
+  connectedCallback() {
+    this.slotProtection?.release();
+    this.slotProtection = protectLightDomSlotContent({
       host: this.el,
-      getInner: () => this.el.querySelector('span.modus-wc-badge'),
+      getInner: () => queryDirectChild(this.el, INNER_BADGE_SELECTOR),
     });
+    this.slotProtection.flush();
+  }
+
+  componentDidLoad() {
+    this.flushEarlyHostText();
+    this.slotProtection?.flush();
+  }
+
+  private captureEarlyHostText() {
+    if (queryDirectChild(this.el, INNER_BADGE_SELECTOR)) {
+      return;
+    }
+
+    const nodes = Array.from(this.el.childNodes);
+    if (nodes.length !== 1 || nodes[0].nodeType !== Node.TEXT_NODE) {
+      return;
+    }
+
+    this.queuedHostText = nodes[0].textContent ?? '';
+    nodes[0].remove();
+  }
+
+  private flushEarlyHostText() {
+    if (this.queuedHostText == null) {
+      return;
+    }
+
+    const inner = queryDirectChild(this.el, INNER_BADGE_SELECTOR);
+    if (inner) {
+      inner.textContent = this.queuedHostText;
+    }
+    this.queuedHostText = undefined;
   }
 
   disconnectedCallback() {
-    this.releaseSlotProtection?.();
-    this.releaseSlotProtection = undefined;
+    this.slotProtection = undefined;
   }
 
   private getClasses(): string {

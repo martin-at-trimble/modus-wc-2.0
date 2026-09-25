@@ -8,11 +8,13 @@ import {
   Listen,
   Prop,
 } from '@stencil/core';
-import { protectLightDomSlotContent } from '../../utils';
+import { protectLightDomSlotContent, queryDirectChild } from '../../utils';
 import { handleShadowDOMStyles } from '../base-component';
 import { DaisySize } from '../types';
 import { Attributes, inheritAriaAttributes, KEY } from '../utils';
 import { convertPropsToClasses } from './modus-wc-button.tailwind';
+
+const INNER_BUTTON_SELECTOR = 'button.modus-wc-btn';
 
 /**
  * A customizable button component used to create buttons with different sizes, variants, and types.
@@ -26,7 +28,8 @@ import { convertPropsToClasses } from './modus-wc-button.tailwind';
 })
 export class ModusWcButton {
   private inheritedAttributes: Attributes = {};
-  private releaseSlotProtection?: () => void;
+  private queuedHostText?: string;
+  private slotProtection?: ReturnType<typeof protectLightDomSlotContent>;
 
   /** Reference to the host element */
   @Element() el!: HTMLElement;
@@ -75,6 +78,7 @@ export class ModusWcButton {
   @Event() buttonClick!: EventEmitter<MouseEvent | KeyboardEvent>;
 
   componentWillLoad() {
+    this.captureEarlyHostText();
     // Auto-inject CSS if component is used inside user's shadow DOM
     handleShadowDOMStyles(this.el);
 
@@ -86,16 +90,50 @@ export class ModusWcButton {
     ]);
   }
 
-  componentDidLoad() {
-    this.releaseSlotProtection = protectLightDomSlotContent({
+  connectedCallback() {
+    this.slotProtection?.release();
+    this.slotProtection = protectLightDomSlotContent({
       host: this.el,
-      getInner: () => this.el.querySelector('button.modus-wc-btn'),
+      getInner: () => queryDirectChild(this.el, INNER_BUTTON_SELECTOR),
     });
+    this.slotProtection.flush();
+  }
+
+  componentDidLoad() {
+    this.flushEarlyHostText();
+    this.slotProtection?.flush();
+  }
+
+  private captureEarlyHostText() {
+    if (queryDirectChild(this.el, INNER_BUTTON_SELECTOR)) {
+      return;
+    }
+
+    const nodes = Array.from(this.el.childNodes);
+    if (nodes.length !== 1 || nodes[0].nodeType !== Node.TEXT_NODE) {
+      return;
+    }
+
+    this.queuedHostText = nodes[0].textContent ?? '';
+    nodes[0].remove();
+  }
+
+  private flushEarlyHostText() {
+    if (this.queuedHostText == null) {
+      return;
+    }
+
+    const inner = queryDirectChild(this.el, INNER_BUTTON_SELECTOR);
+    if (inner) {
+      inner.textContent = this.queuedHostText;
+    }
+    this.queuedHostText = undefined;
   }
 
   disconnectedCallback() {
-    this.releaseSlotProtection?.();
-    this.releaseSlotProtection = undefined;
+    // Keep host accessor patches when the node is re-parented; Stencil does not
+    // run componentDidLoad again and connectedCallback may not re-run in time.
+    this.slotProtection = undefined;
   }
 
   private getClasses(): string {

@@ -1,26 +1,60 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-/**
- * React (and other reconcilers) often update a custom element's children by
- * assigning `textContent` / `innerHTML` on the host. With `shadow: false`, that
- * assignment destroys Stencil's inner chrome (the styled span/button) and the
- * visual styles drop. Redirect those accessors to the slot destination instead.
- */
 export function protectLightDomSlotContent(options: {
   host: HTMLElement;
   getInner: () => Element | null;
-}): () => void {
+}): SlotProtection {
   const { host, getInner } = options;
-  patchHostAccessor(host, 'textContent', getInner);
-  patchHostAccessor(host, 'innerHTML', getInner);
+  let pending: PendingWrite | null = null;
 
-  return () => {
+  const applyPending = () => {
+    if (!pending) {
+      return;
+    }
+
+    const inner = getInner();
+    if (!inner) {
+      return;
+    }
+
+    const descriptor = findAccessorDescriptor(inner, pending.name);
+    if (!descriptor?.set) {
+      return;
+    }
+
+    const write = pending;
+    pending = null;
+    descriptor.set.call(inner, write.value);
+  };
+
+  const queueWrite = (name: 'textContent' | 'innerHTML', value: string) => {
+    pending = { name, value };
+    queueMicrotask(applyPending);
+  };
+
+  patchHostAccessor(host, 'textContent', getInner, queueWrite);
+  patchHostAccessor(host, 'innerHTML', getInner, queueWrite);
+
+  const release = () => {
+    pending = null;
     delete (host as { textContent?: string }).textContent;
     delete (host as { innerHTML?: string }).innerHTML;
   };
+
+  return { release, flush: applyPending };
 }
 
+export type SlotProtection = {
+  release: () => void;
+  flush: () => void;
+};
+
+type PendingWrite = {
+  name: 'textContent' | 'innerHTML';
+  value: string;
+};
+
 function findAccessorDescriptor(
-  host: HTMLElement,
+  host: object,
   name: 'textContent' | 'innerHTML'
 ): PropertyDescriptor | undefined {
   let proto: object | null = Object.getPrototypeOf(host);
@@ -37,7 +71,8 @@ function findAccessorDescriptor(
 function patchHostAccessor(
   host: HTMLElement,
   name: 'textContent' | 'innerHTML',
-  getInner: () => Element | null
+  getInner: () => Element | null,
+  queueWrite: (name: 'textContent' | 'innerHTML', value: string) => void
 ): void {
   const descriptor = findAccessorDescriptor(host, name);
   if (!descriptor?.get || !descriptor.set) {
@@ -60,7 +95,7 @@ function patchHostAccessor(
         set.call(inner, next);
         return;
       }
-      set.call(host, next);
+      queueWrite(name, next);
     },
   });
 }
