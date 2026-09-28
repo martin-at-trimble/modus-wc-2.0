@@ -158,7 +158,7 @@ describe('modus-wc-badge', () => {
     page.root!.appendChild(document.createElement('span'));
     page.rootInstance.captureEarlyHostText();
     page.root!.textContent = '';
-    page.rootInstance.queuedHostText = 'Later';
+    page.rootInstance.queuedHostText = { text: 'Later' };
     page.rootInstance.flushEarlyHostText();
 
     expect(page.root!.textContent).not.toContain('Later');
@@ -252,7 +252,7 @@ describe('modus-wc-badge', () => {
       html: '<modus-wc-badge></modus-wc-badge>',
     });
 
-    page.rootInstance.queuedHostText = 'Queued';
+    page.rootInstance.queuedHostText = { text: 'Queued' };
     page.rootInstance.flushEarlyHostText();
 
     const span = page.root?.querySelector('span.modus-wc-badge');
@@ -298,6 +298,6 @@ describe('modus-wc-badge', () => {
     page.root!.appendChild(text);
     page.rootInstance.captureEarlyHostText();
 
-    expect(page.rootInstance.queuedHostText).toBe('');
+    expect(page.rootInstance.queuedHostText?.text).toBe('');
   });
 });

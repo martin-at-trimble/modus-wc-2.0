@@ -8,7 +8,13 @@ import {
   Listen,
   Prop,
 } from '@stencil/core';
-import { protectLightDomSlotContent, queryDirectChild } from '../../utils';
+import {
+  captureEarlyHostText,
+  type EarlyHostText,
+  flushEarlyHostText,
+  protectLightDomSlotContent,
+  queryDirectChild,
+} from '../../utils';
 import { handleShadowDOMStyles } from '../base-component';
 import { DaisySize } from '../types';
 import { Attributes, inheritAriaAttributes, KEY } from '../utils';
@@ -28,7 +34,7 @@ const INNER_BUTTON_SELECTOR = 'button.modus-wc-btn';
 })
 export class ModusWcButton {
   private inheritedAttributes: Attributes = {};
-  private queuedHostText?: string;
+  private queuedHostText?: EarlyHostText;
   private slotProtection?: ReturnType<typeof protectLightDomSlotContent>;
 
   /** Reference to the host element */
@@ -105,28 +111,21 @@ export class ModusWcButton {
   }
 
   private captureEarlyHostText() {
-    if (queryDirectChild(this.el, INNER_BUTTON_SELECTOR)) {
-      return;
-    }
-
-    const nodes = Array.from(this.el.childNodes);
-    if (nodes.length !== 1 || nodes[0].nodeType !== Node.TEXT_NODE) {
-      return;
-    }
-
-    this.queuedHostText = nodes[0].textContent ?? '';
-    nodes[0].remove();
+    this.queuedHostText = captureEarlyHostText(
+      this.el,
+      Boolean(queryDirectChild(this.el, INNER_BUTTON_SELECTOR))
+    );
   }
 
   private flushEarlyHostText() {
-    if (this.queuedHostText == null) {
+    if (!this.queuedHostText) {
       return;
     }
 
-    const inner = queryDirectChild(this.el, INNER_BUTTON_SELECTOR);
-    if (inner) {
-      inner.textContent = this.queuedHostText;
-    }
+    flushEarlyHostText(
+      queryDirectChild(this.el, INNER_BUTTON_SELECTOR),
+      this.queuedHostText
+    );
     this.queuedHostText = undefined;
   }
 

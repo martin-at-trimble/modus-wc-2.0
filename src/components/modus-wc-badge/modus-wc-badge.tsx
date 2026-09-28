@@ -1,6 +1,12 @@
 import { Component, Element, h, Host, Prop } from '@stencil/core';
 import { convertPropsToClasses } from './modus-wc-badge.tailwind';
-import { protectLightDomSlotContent, queryDirectChild } from '../../utils';
+import {
+  captureEarlyHostText,
+  type EarlyHostText,
+  flushEarlyHostText,
+  protectLightDomSlotContent,
+  queryDirectChild,
+} from '../../utils';
 import { handleShadowDOMStyles } from '../base-component';
 import { ModusSize } from '../types';
 import { Attributes, inheritAriaAttributes } from '../utils';
@@ -20,7 +26,7 @@ const ALERT_COLORS = ['success', 'warning', 'danger'];
 })
 export class ModusWcBadge {
   private inheritedAttributes: Attributes = {};
-  private queuedHostText?: string;
+  private queuedHostText?: EarlyHostText;
   private slotProtection?: ReturnType<typeof protectLightDomSlotContent>;
 
   /** Reference to the host element */
@@ -67,28 +73,21 @@ export class ModusWcBadge {
   }
 
   private captureEarlyHostText() {
-    if (queryDirectChild(this.el, INNER_BADGE_SELECTOR)) {
-      return;
-    }
-
-    const nodes = Array.from(this.el.childNodes);
-    if (nodes.length !== 1 || nodes[0].nodeType !== Node.TEXT_NODE) {
-      return;
-    }
-
-    this.queuedHostText = nodes[0].textContent ?? '';
-    nodes[0].remove();
+    this.queuedHostText = captureEarlyHostText(
+      this.el,
+      Boolean(queryDirectChild(this.el, INNER_BADGE_SELECTOR))
+    );
   }
 
   private flushEarlyHostText() {
-    if (this.queuedHostText == null) {
+    if (!this.queuedHostText) {
       return;
     }
 
-    const inner = queryDirectChild(this.el, INNER_BADGE_SELECTOR);
-    if (inner) {
-      inner.textContent = this.queuedHostText;
-    }
+    flushEarlyHostText(
+      queryDirectChild(this.el, INNER_BADGE_SELECTOR),
+      this.queuedHostText
+    );
     this.queuedHostText = undefined;
   }
 

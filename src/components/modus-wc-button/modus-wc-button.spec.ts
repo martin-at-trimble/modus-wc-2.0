@@ -250,6 +250,30 @@ describe('modus-wc-button', () => {
     expect(clickSpy).not.toHaveBeenCalled();
   });
 
+  it('should keep a stencil comment and follow nodeValue on the original text node', async () => {
+    const page = await newSpecPage({
+      components: [ModusWcButton],
+      html: '<div></div>',
+    });
+
+    const button = document.createElement('modus-wc-button');
+    const comment = document.createComment('');
+    const text = document.createTextNode('Hi');
+    button.append(comment, text);
+    document.body.appendChild(button);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await page.waitForChanges();
+
+    const inner = button.querySelector('button.modus-wc-btn');
+    expect(inner).not.toBeNull();
+    expect(button.contains(comment)).toBe(true);
+    text.nodeValue = 'X';
+    expect(inner?.textContent).toBe('X');
+
+    button.remove();
+  });
+
   it('should capture and flush early host text before first render', async () => {
     const page = await newSpecPage({
       components: [ModusWcButton],
@@ -348,7 +372,7 @@ describe('modus-wc-button', () => {
     page.root!.appendChild(document.createElement('span'));
     page.rootInstance.captureEarlyHostText();
     page.root!.textContent = '';
-    page.rootInstance.queuedHostText = 'Later';
+    page.rootInstance.queuedHostText = { text: 'Later' };
     page.rootInstance.flushEarlyHostText();
 
     expect(page.root!.textContent).not.toContain('Later');
@@ -389,7 +413,7 @@ describe('modus-wc-button', () => {
       html: '<modus-wc-button></modus-wc-button>',
     });
 
-    page.rootInstance.queuedHostText = 'Queued';
+    page.rootInstance.queuedHostText = { text: 'Queued' };
     page.rootInstance.flushEarlyHostText();
 
     const inner = page.root?.querySelector('button.modus-wc-btn');
@@ -435,7 +459,7 @@ describe('modus-wc-button', () => {
     page.root!.appendChild(text);
     page.rootInstance.captureEarlyHostText();
 
-    expect(page.rootInstance.queuedHostText).toBe('');
+    expect(page.rootInstance.queuedHostText?.text).toBe('');
   });
 
   it('should keep inner button chrome and danger styles after color prop update and host textContent', async () => {
