@@ -1031,7 +1031,7 @@ export namespace Components {
          */
         "heading": string;
         /**
-          * Bundled illustration name. Valid values depend on `variant`: compact — `selection_plus`, `symbol_info`, `add_user`; illustration — `landscape`, `documents_empty`, `cloud_access`, `store_settings`, `error_404`; error — `page_not_found`.
+          * Bundled illustration name. Valid values depend on `variant`: compact — `selection_plus`, `symbol_info`, `add_user`; illustration — `landscape`, `api`, `api_plugin`, `documents_empty`, `cloud_access`, `store_settings`; error — `error_404`, `error_404_page`.
          */
         "illustration"?: EmptyStateIllustration;
         /**
@@ -5516,7 +5516,7 @@ declare namespace LocalJSX {
          */
         "heading": string;
         /**
-          * Bundled illustration name. Valid values depend on `variant`: compact — `selection_plus`, `symbol_info`, `add_user`; illustration — `landscape`, `documents_empty`, `cloud_access`, `store_settings`, `error_404`; error — `page_not_found`.
+          * Bundled illustration name. Valid values depend on `variant`: compact — `selection_plus`, `symbol_info`, `add_user`; illustration — `landscape`, `api`, `api_plugin`, `documents_empty`, `cloud_access`, `store_settings`; error — `error_404`, `error_404_page`.
          */
         "illustration"?: EmptyStateIllustration;
         /**
